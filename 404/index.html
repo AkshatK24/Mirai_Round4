@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>404: Lost in Space - Team Mirai</title>
+  <!-- Futuristic Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet">
+  <style>
+    /* Reset & Base Styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: #000;
+      overflow: hidden;
+      font-family: 'Orbitron', sans-serif;
+    }
+    /* Overlay for Instructions & Messages */
+    #overlay {
+      position: absolute;
+      top: 20px;
+      width: 100%;
+      text-align: center;
+      color: #fff;
+      z-index: 10;
+      pointer-events: none;
+    }
+    #overlay h1 {
+      font-size: 3rem;
+      text-shadow: 0 0 10px #0ff;
+    }
+    #overlay h2 {
+      font-size: 2rem;
+      margin-top: 10px;
+      text-shadow: 0 0 8px #f0f;
+    }
+    #overlay p {
+      margin-top: 20px;
+      font-size: 1.2rem;
+      text-shadow: 0 0 6px #fff;
+    }
+    #homeLink {
+      display: none;
+      margin-top: 20px;
+      padding: 10px 20px;
+      background: linear-gradient(45deg, #00ffea, #ff00c8);
+      color: #000;
+      text-decoration: none;
+      font-weight: bold;
+      border-radius: 5px;
+      animation: pulse 1.5s infinite;
+      pointer-events: auto;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    /* Blast Animation for Team Mirai */
+    #blast {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      font-size: 4rem;
+      color: #ff0;
+      text-shadow: 0 0 10px #ff0, 0 0 20px #ff0;
+      z-index: 20;
+      pointer-events: none;
+    }
+    @keyframes popBlast {
+      0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+      50% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+    }
+    /* Canvas Game Area */
+    #gameCanvas {
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+    /* Responsive Text Adjustments */
+    @media (max-width: 600px) {
+      #overlay h1 { font-size: 2.2rem; }
+      #overlay h2 { font-size: 1.6rem; }
+      #overlay p { font-size: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Overlay Content -->
+  <div id="overlay">
+    <h1>404: Spaceship Not Found</h1>
+    <h2>Team Mirai on Duty!</h2>
+    <p>
+      Pilot your ship, fire lasers, and catch the fast-moving energy ball.
+    </p>
+    <a id="homeLink" href="/">Take Me Home</a>
+  </div>
+  
+  <!-- Blast Animation Container -->
+  <div id="blast">Team Mirai</div>
+  
+  <!-- Canvas Game Area -->
+  <canvas id="gameCanvas"></canvas>
+
+  <script>
+    // Get Canvas & Context
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Resize Canvas to Fill the Window
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Create a Starfield Background
+    const stars = [];
+    const numStars = 200;
+    for (let i = 0; i < numStars; i++) {
+      stars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        radius: Math.random() * 1.5,
+        speed: Math.random() * 0.5 + 0.2
+      });
+    }
+
+    // Spaceship Properties (with the “Mirai” Badge)
+    const ship = {
+      x: canvas.width / 2,
+      y: canvas.height - 100,
+      size: 20,
+      speed: 4
+    };
+
+    // Fast-Moving Energy Ball
+    const ball = {
+      x: Math.random() * (canvas.width - 60) + 30,
+      y: Math.random() * (canvas.height - 60) + 30,
+      radius: 15,
+      dx: 5 * (Math.random() < 0.5 ? 1 : -1),
+      dy: 5 * (Math.random() < 0.5 ? 1 : -1)
+    };
+
+    // Array for Lasers Fired by the Spaceship
+    const lasers = [];
+
+    // Game State & Key Controls
+    let caught = false;
+    let keys = {};
+    window.addEventListener('keydown', (e) => {
+      keys[e.key] = true;
+      // Fire a laser when the spacebar is pressed (if game not over)
+      if (e.code === 'Space' && !caught) {
+        lasers.push({
+          x: ship.x,
+          y: ship.y - ship.size,
+          radius: 4,
+          speed: 8
+        });
+      }
+    });
+    window.addEventListener('keyup', (e) => {
+      keys[e.key] = false;
+    });
+
+    // Update Spaceship Position Based on Key Input
+    function updateShip() {
+      if (keys['ArrowLeft'] || keys['a'] || keys['A']) ship.x -= ship.speed;
+      if (keys['ArrowRight'] || keys['d'] || keys['D']) ship.x += ship.speed;
+      if (keys['ArrowUp'] || keys['w'] || keys['W']) ship.y -= ship.speed;
+      if (keys['ArrowDown'] || keys['s'] || keys['S']) ship.y += ship.speed;
+      // Keep the ship within the canvas boundaries
+      ship.x = Math.max(ship.size, Math.min(canvas.width - ship.size, ship.x));
+      ship.y = Math.max(ship.size, Math.min(canvas.height - ship.size, ship.y));
+    }
+
+    // Update the Fast-Moving Energy Ball
+    function updateBall() {
+      if (!caught) {
+        ball.x += ball.dx;
+        ball.y += ball.dy;
+        if (ball.x < ball.radius || ball.x > canvas.width - ball.radius) ball.dx = -ball.dx;
+        if (ball.y < ball.radius || ball.y > canvas.height - ball.radius) ball.dy = -ball.dy;
+      }
+    }
+
+    // Update Lasers: Move Them Up & Check for Collisions with the Ball
+    function updateLasers() {
+      for (let i = lasers.length - 1; i >= 0; i--) {
+        lasers[i].y -= lasers[i].speed;
+        // Remove lasers that go off-canvas
+        if (lasers[i].y < 0) {
+          lasers.splice(i, 1);
+          continue;
+        }
+        // Collision Detection: Laser vs. Ball
+        const dx = lasers[i].x - ball.x;
+        const dy = lasers[i].y - ball.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance < ball.radius + lasers[i].radius) {
+          caught = true;
+          document.getElementById('homeLink').style.display = 'inline-block';
+          // Trigger the blast animation for "Team Mirai"
+          document.getElementById('blast').style.animation = 'popBlast 1s ease-out forwards';
+          // Clear any remaining lasers
+          lasers.length = 0;
+          break;
+        }
+      }
+    }
+
+    // Draw the Starfield with a Subtle Parallax Effect
+    function drawStars() {
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#fff";
+      for (let star of stars) {
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+        ctx.fill();
+        star.y += star.speed;
+        if (star.y > canvas.height) {
+          star.y = 0;
+          star.x = Math.random() * canvas.width;
+        }
+      }
+    }
+
+    // Draw the Energy Ball
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      ctx.fillStyle = "#ff5722";
+      ctx.fill();
+      ctx.strokeStyle = "#ff9800";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Draw All Lasers
+    function drawLasers() {
+      ctx.fillStyle = "#f00";
+      for (let laser of lasers) {
+        ctx.beginPath();
+        ctx.arc(laser.x, laser.y, laser.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Draw the Spaceship as a Dynamic Triangle with "Mirai" Emblem
+    function drawShip() {
+      ctx.save();
+      ctx.translate(ship.x, ship.y);
+      ctx.beginPath();
+      ctx.moveTo(0, -ship.size);
+      ctx.lineTo(-ship.size, ship.size);
+      ctx.lineTo(ship.size, ship.size);
+      ctx.closePath();
+      ctx.fillStyle = "#0ff";
+      ctx.fill();
+      ctx.fillStyle = "#000";
+      ctx.font = "bold 12px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("Mirai", 0, ship.size / 2);
+      ctx.restore();
+    }
+
+    // Main Animation Loop
+    function animate(time) {
+      updateShip();
+      if (!caught) {
+        updateBall();
+        updateLasers();
+      }
+      drawStars();
+      drawBall();
+      drawLasers();
+      drawShip();
+      requestAnimationFrame(animate);
+    }
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
